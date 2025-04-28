@@ -20,4 +20,4 @@ DeviceNetworkEvents
 | where RemoteUrl has_any ("BAD.COM")  
 | take 10 
 
-<pre> ``` This is a code block. It can be used for code or plain text. ``` </pre>
+<pre> ``` test test test``` </pre>
