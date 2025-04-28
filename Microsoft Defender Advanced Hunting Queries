@@ -1,10 +1,8 @@
 
-```
 //SHOW ALL TABLES IN SENTINEL 
 search * 
 | summarize count() by $table 
 | project TableName= $table 
-```
 
 // identify a URL in the environment , if you see in DeviceNetworkEvents table and the ActionType is ConnectionSuccess then communication was made. 
 let url = "BAD.COM"; 
@@ -22,4 +20,13 @@ DeviceNetworkEvents
 | where RemoteUrl has_any ("BAD.COM")  
 | take 10 
 
-
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plain Text Box</title>
+</head>
+<body>
+    <h1>Plain Text Box</h1>
+    <textarea rows="10" cols="50" placeholder="Enter your text here..."></textarea>
+</body>
+</html>
