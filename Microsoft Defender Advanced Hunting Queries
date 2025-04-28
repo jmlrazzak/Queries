@@ -20,13 +20,4 @@ DeviceNetworkEvents
 | where RemoteUrl has_any ("BAD.COM")  
 | take 10 
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Plain Text Box</title>
-</head>
-<body>
-    <h1>Plain Text Box</h1>
-    <textarea rows="10" cols="50" placeholder="Enter your text here..."></textarea>
-</body>
-</html>
+<pre> ``` This is a code block. It can be used for code or plain text. ``` </pre>
