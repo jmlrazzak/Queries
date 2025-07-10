@@ -205,7 +205,8 @@ ProcessCmd ContainsCIS "wevtutil cl system" OR ProcessCmd ContainsCIS "Clear-Eve
 
 ```
 
-==================TO TEST ====================
+**==================TO TEST ====================**
+
 <ins>1. Detect Suspicious Processes
 ```
 src.process.cmdline OR src.process.displayName OR src.process.parent.name OR src.process.user contains "powershell.exe" AND command_line contains "-enc"
