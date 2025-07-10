@@ -1,4 +1,30 @@
+HUNTING QUERIES (they work)
+User Account Operations
+Add User
+```
+ProcessCmd RegExp "net\s+user(?:(?!\s+/add)(?:.|\n))*\s+/add"
+```
+TEXT FIELD
+```
 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==================TO TEST ====================
 1. Detect Suspicious Processes
 ```
 src.process.cmdline OR src.process.displayName OR src.process.parent.name OR src.process.user contains "powershell.exe" AND command_line contains "-enc"
