@@ -1,5 +1,5 @@
-HUNTING QUERIES (they work)
-User Account Operations
+**HUNTING QUERIES (they work)
+**User Account Operations
 Add User
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/add)(?:.|\n))*\s+/add"
@@ -8,21 +8,170 @@ TEXT FIELD
 ```
 
 ```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
 
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
+TEXT FIELD
+```
+
+```
 
 ==================TO TEST ====================
 1. Detect Suspicious Processes
