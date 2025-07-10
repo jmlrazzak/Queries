@@ -1,4 +1,4 @@
-**HUNTING QUERIES (they work)**
+**THREAT HUNTING QUERIES**
 
 **User Account Operations**
 
