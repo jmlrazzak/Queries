@@ -1,5 +1,6 @@
 **HUNTING QUERIES (they work)
 **User Account Operations
+
 Add User
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/add)(?:.|\n))*\s+/add"
