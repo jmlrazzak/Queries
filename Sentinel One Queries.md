@@ -1,6 +1,6 @@
 **HUNTING QUERIES (they work)**
 
-<ins>**User Account Operations**
+**User Account Operations**
 
 <ins>Search for Add User
 ```
