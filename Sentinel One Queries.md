@@ -1,175 +1,205 @@
-**HUNTING QUERIES (they work)
-**User Account Operations
+**HUNTING QUERIES (they work)**
+**User Account Operations**
 
-Add User
+Search for Add User
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/add)(?:.|\n))*\s+/add"
 ```
-TEXT FIELD
+Search for Delete User
+```
+ProcessCmd RegExp "net\s+user(?:(?!\s+/delete)(?:.|\n))*\s+/delete"
+```
+Search for Domain User Query
+```
+ProcessCmd RegExp "net\s+user(?:(?!\s+/domain)(?:.|\n))*\s+/domain"
+```
+Search for Add User to AD
+```
+ProcessCmd ContainsCIS "dsadd user"
+```
+Search for Add Local User via PowerShell
+```
+ProcessCmd ContainsCIS "powershell.exe New-LocalUser"
+```
+
+**Authentication & Privilege Escalation**
+
+Search for Query Local Admin Group
+```
+ProcessCmd ContainsCIS "net localgroup administrators"
+```
+Search for Whoami Command
+```
+ProcessCmd ContainsCIS "whoami"
+```
+
+**Suspicious PowerShell Activity**
+
+Search for PowerShell with Network Connections
+```
+DstIP Is Not Empty AND ProcessName ContainsCIS "powershell"
+```
+Search for PowerShell Running as SYSTEM
+```
+ProcessName ContainsCIS "powershell" AND User ContainsCIS "SYSTEM"
+```
+Search for PowerShell Scheduled Task Creation
+```
+ParentProcessName = "Windows PowerShell" AND ProcessName = "Task Scheduler Configuration Tool"
+```
+Search for Suspicious PowerShell Commands
+```
+ProcessName ContainsCIS "powershell" AND (
+  ProcessCmd ContainsCIS "Invoke-Expression" OR
+  ProcessCmd ContainsCIS "-encodedcommand" OR
+  ProcessCmd ContainsCIS "hidden" OR
+  ProcessCmd ContainsCIS "write-host" OR
+  ProcessCmd ContainsCIS "Get-NetIPConfiguration"
+)
+```
+
+**File & Registry Operations**
+
+Search for Shell Process Creating or Modifying Files
+```
+(ProcessName ContainsCIS "windows command processor" OR ProcessName ContainsCIS "powershell") AND
+(FileModifyAt > "Mar 26, 2017 00:00:10" OR FileCreatedAt > "Mar 26, 2017 00:00:31")
+```
+Search for Registry Alteration via Command Line
+```
+ProcessCmd RegExp "reg\s+add" OR ProcessCmd RegExp "reg\s+del"
+```
+Search for Registry Persistence
+```
+ProcessCmd ContainsCIS "reg add" AND (ProcessCmd ContainsCIS "Run" OR ProcessCmd ContainsCIS "Null")
+```
+
+**Network & Reconnaissance**
+
+Search for List SPNs in Domain
+```
+ProcessCmd ContainsCIS "setspn" AND ProcessCmd RegExp "-t" AND ProcessCmd RegExp "-q */*"
+```
+Search for Query Logged-in Users
+```
+ProcessCmd ContainsCIS "quser"
+```
+Search for Qwinsta Sessions
+```
+ProcessCmd ContainsCIS "qwinsta"
+```
+Search for Netstat, IPConfig, Arp, etc.
+```
+ProcessCmd RegExp "ipconfig" OR ProcessCmd RegExp "net\s+view" OR ProcessCmd RegExp "arp -a" OR ProcessCmd RegExp "netstat"
+```
+
+**System & Task Management**
+
+Search for Unusual Scheduled Task Creation
+```
+ProcessCmd ContainsCIS "schtasks" AND processName != "Manages scheduled tasks"
+```
+Search for Current Running Processes
+```
+ProcessCmd ContainsCIS "tasklist"
+```
+Search for System Info Gathering
+```
+ProcessCmd ContainsCIS "systeminfo"
+```
+
+**Persistence & Exploitation**
+
+Search for svchost.exe in Unusual Context
+```
+processImagePath = "C:\\Windows\\System32\\svchost.exe" AND
+User NOT IN ("NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\LOCAL SERVICE", "NT AUTHORITY\\NETWORK SERVICE")
+```
+Search for Suspicious Parent Process (svchost.exe)
+```
+ProcessName ContainsCIS "Host Process for Windows Services" AND
+ParentProcessName NOT IN ("Host Process for Windows Services", "Services and Controller app")
+```
+
+**Miscellaneous Suspicious Behavior**
+
+Search for Enable SMBv1
+```
+ProcessCmd = "REG ADD HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters /v SMB1 /t REG_DWORD /d 1 /f"
+```
+Search for Execute File in AppData
+```
+ProcessCmd ContainsCIS "/FILE" AND ProcessCmd ContainsCIS "Appdata"
+```
+Search for Clear Event Logs
+```
+ProcessCmd ContainsCIS "wevtutil cl system" OR ProcessCmd ContainsCIS "Clear-EventLog"
+```
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
+Search for 
 ```
 
 ```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
-```
-
-```
-TEXT FIELD
+Search for 
 ```
 
 ```
