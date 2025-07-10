@@ -2,53 +2,53 @@
 
 <ins>**User Account Operations**
 
-Search for Add User
+<ins>Search for Add User
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/add)(?:.|\n))*\s+/add"
 ```
-Search for Delete User
+<ins>Search for Delete User
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/delete)(?:.|\n))*\s+/delete"
 ```
-Search for Domain User Query
+<ins>Search for Domain User Query
 ```
 ProcessCmd RegExp "net\s+user(?:(?!\s+/domain)(?:.|\n))*\s+/domain"
 ```
-Search for Add User to AD
+<ins>Search for Add User to AD
 ```
 ProcessCmd ContainsCIS "dsadd user"
 ```
-Search for Add Local User via PowerShell
+<ins>Search for Add Local User via PowerShell
 ```
 ProcessCmd ContainsCIS "powershell.exe New-LocalUser"
 ```
 
 **Authentication & Privilege Escalation**
 
-Search for Query Local Admin Group
+<ins>Search for Query Local Admin Group
 ```
 ProcessCmd ContainsCIS "net localgroup administrators"
 ```
-Search for Whoami Command
+<ins>Search for Whoami Command
 ```
 ProcessCmd ContainsCIS "whoami"
 ```
 
 **Suspicious PowerShell Activity**
 
-Search for PowerShell with Network Connections
+<ins>Search for PowerShell with Network Connections
 ```
 DstIP Is Not Empty AND ProcessName ContainsCIS "powershell"
 ```
-Search for PowerShell Running as SYSTEM
+<ins>Search for PowerShell Running as SYSTEM
 ```
 ProcessName ContainsCIS "powershell" AND User ContainsCIS "SYSTEM"
 ```
-Search for PowerShell Scheduled Task Creation
+<ins>Search for PowerShell Scheduled Task Creation
 ```
 ParentProcessName = "Windows PowerShell" AND ProcessName = "Task Scheduler Configuration Tool"
 ```
-Search for Suspicious PowerShell Commands
+<ins>Search for Suspicious PowerShell Commands
 ```
 ProcessName ContainsCIS "powershell" AND (
   ProcessCmd ContainsCIS "Invoke-Expression" OR
@@ -61,62 +61,62 @@ ProcessName ContainsCIS "powershell" AND (
 
 **File & Registry Operations**
 
-Search for Shell Process Creating or Modifying Files
+<ins>Search for Shell Process Creating or Modifying Files
 ```
 (ProcessName ContainsCIS "windows command processor" OR ProcessName ContainsCIS "powershell") AND
 (FileModifyAt > "Mar 26, 2017 00:00:10" OR FileCreatedAt > "Mar 26, 2017 00:00:31")
 ```
-Search for Registry Alteration via Command Line
+<ins>Search for Registry Alteration via Command Line
 ```
 ProcessCmd RegExp "reg\s+add" OR ProcessCmd RegExp "reg\s+del"
 ```
-Search for Registry Persistence
+<ins>Search for Registry Persistence
 ```
 ProcessCmd ContainsCIS "reg add" AND (ProcessCmd ContainsCIS "Run" OR ProcessCmd ContainsCIS "Null")
 ```
 
 **Network & Reconnaissance**
 
-Search for List SPNs in Domain
+<ins>Search for List SPNs in Domain
 ```
 ProcessCmd ContainsCIS "setspn" AND ProcessCmd RegExp "-t" AND ProcessCmd RegExp "-q */*"
 ```
-Search for Query Logged-in Users
+<ins>Search for Query Logged-in Users
 ```
 ProcessCmd ContainsCIS "quser"
 ```
-Search for Qwinsta Sessions
+<ins>Search for Qwinsta Sessions
 ```
 ProcessCmd ContainsCIS "qwinsta"
 ```
-Search for Netstat, IPConfig, Arp, etc.
+<ins>Search for Netstat, IPConfig, Arp, etc.
 ```
 ProcessCmd RegExp "ipconfig" OR ProcessCmd RegExp "net\s+view" OR ProcessCmd RegExp "arp -a" OR ProcessCmd RegExp "netstat"
 ```
 
 **System & Task Management**
 
-Search for Unusual Scheduled Task Creation
+<ins>Search for Unusual Scheduled Task Creation
 ```
 ProcessCmd ContainsCIS "schtasks" AND processName != "Manages scheduled tasks"
 ```
-Search for Current Running Processes
+<ins>Search for Current Running Processes
 ```
 ProcessCmd ContainsCIS "tasklist"
 ```
-Search for System Info Gathering
+<ins>Search for System Info Gathering
 ```
 ProcessCmd ContainsCIS "systeminfo"
 ```
 
 **Persistence & Exploitation**
 
-Search for svchost.exe in Unusual Context
+<ins>Search for svchost.exe in Unusual Context
 ```
 processImagePath = "C:\\Windows\\System32\\svchost.exe" AND
 User NOT IN ("NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\LOCAL SERVICE", "NT AUTHORITY\\NETWORK SERVICE")
 ```
-Search for Suspicious Parent Process (svchost.exe)
+<ins>Search for Suspicious Parent Process (svchost.exe)
 ```
 ProcessName ContainsCIS "Host Process for Windows Services" AND
 ParentProcessName NOT IN ("Host Process for Windows Services", "Services and Controller app")
@@ -124,234 +124,234 @@ ParentProcessName NOT IN ("Host Process for Windows Services", "Services and Con
 
 **Miscellaneous Suspicious Behavior**
 
-Search for Enable SMBv1
+<ins>Search for Enable SMBv1
 ```
 ProcessCmd = "REG ADD HKLM\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters /v SMB1 /t REG_DWORD /d 1 /f"
 ```
-Search for Execute File in AppData
+<ins>Search for Execute File in AppData
 ```
 ProcessCmd ContainsCIS "/FILE" AND ProcessCmd ContainsCIS "Appdata"
 ```
-Search for Clear Event Logs
+<ins>Search for Clear Event Logs
 ```
 ProcessCmd ContainsCIS "wevtutil cl system" OR ProcessCmd ContainsCIS "Clear-EventLog"
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
-Search for 
+<ins>Search for 
 ```
 
 ```
 
 ==================TO TEST ====================
-1. Detect Suspicious Processes
+<ins>1. Detect Suspicious Processes
 ```
 src.process.cmdline OR src.process.displayName OR src.process.parent.name OR src.process.user contains "powershell.exe" AND command_line contains "-enc"
 ```
 
-2. Find Unauthorized Software Installations
+<ins>2. Find Unauthorized Software Installations
 ```
 event_type contains "installation" AND NOT publisher contains "Microsoft Corporation" AND NOT publisher contains "Google LLC" AND NOT publisher contains "Apple Inc."
 ```
 
-3. Search for Specific Malware Hashes
+<ins>3. Search for Specific Malware Hashes
 ```
 file_hash in ["hash1", "hash2", "hash3"]
 ```
 
-4. Detect Lateral Movement Attempts
+<ins>4. Detect Lateral Movement Attempts
 ```
 event_type contains "network_connection" AND destination_port in [445, 3389] AND direction contains "outbound" AND NOT is_encrypted
 ```
 
-5. Identify Persistence Mechanisms
+<ins>5. Identify Persistence Mechanisms
 ```
 event_type contains "registry_change" AND registry_key contains "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
 ```
 
-6. Investigate Privilege Escalation Attempts
+<ins>6. Investigate Privilege Escalation Attempts
 ```
 process_name in ["schtasks.exe", "runas.exe", "psexec.exe"] AND elevated_privileges
 ```
 
-7. Monitor RDP Logins
+<ins>7. Monitor RDP Logins
 ```
 event_type contains "login" AND login_type contains "RDP" AND timestamp within last 24 hours AND NOT source_ip in ["trusted_IP1", "trusted_IP2"]
 ```
 
-8. Detect Suspicious File Modifications
+<ins>8. Detect Suspicious File Modifications
 ```
 event_type contains "file_modification" AND file_extension in [".ps1", ".bat", ".exe", ".dll"] AND file_path contains "Temp"
 ```
 
-9. Investigate High-Severity Threats
+<ins>9. Investigate High-Severity Threats
 ```
 event_type contains "threat" AND severity in ["high", "critical"] AND timestamp within last 7 days
 ```
 
-10. Look for Data Exfiltration
+<ins>10. Look for Data Exfiltration
 ```
 event_type contains "network_connection" AND NOT destination_ip in ["internal_IP_range"] AND bytes_sent > 10000000 AND timestamp within last 24 hours
 ```
 
-11. Detect Suspicious PowerShell Activity
+<ins>11. Detect Suspicious PowerShell Activity
 ```
 process_name contains "powershell.exe" AND command_line contains "-nop -w hidden"
 ```
 
-12. Investigate High CPU Usage Processes
+<ins>12. Investigate High CPU Usage Processes
 ```
 process_name exists AND cpu_usage > 80
 ```
 
-13. Search for Processes Making Network Connections
+<ins>13. Search for Processes Making Network Connections
 ```
 process_name exists AND event_type contains "network_connection"
 ```
 
-14. Identify Processes Accessing Sensitive Files
+<ins>14. Identify Processes Accessing Sensitive Files
 ```
 file_path contains "C:\\Windows\\System32" AND process_name exists
 ```
 
-15. Detect Unusual Parent-Child Process Relationships
+<ins>15. Detect Unusual Parent-Child Process Relationships
 ```
 parent_process_name contains "explorer.exe" AND process_name contains "cmd.exe"
 ```
 
-16. Look for Newly Created Files
+<ins>16. Look for Newly Created Files
 ```
 event_type contains "file_creation" AND timestamp within last 24 hours
 ```
 
-17. Find Threats with Suspicious File Extensions
+<ins>17. Find Threats with Suspicious File Extensions
 ```
 file_extension in [".exe", ".dll", ".bat", ".ps1"] AND event_type contains "threat"
 ```
 
-18. Investigate Large Outbound Network Traffic
+<ins>18. Investigate Large Outbound Network Traffic
 ```
 event_type contains "network_connection" AND bytes_sent > 50000000
 ```
 
-19. Search for Terminated Processes
+<ins>19. Search for Terminated Processes
 ```
 event_type contains "process_termination"
 ```
 
-20. Investigate Processes with High Memory Usage
+<ins>20. Investigate Processes with High Memory Usage
 ```
 process_name exists AND memory_usage > 500MB
 ```
 
-21. Search for Suspicious Scheduled Tasks
+<ins>21. Search for Suspicious Scheduled Tasks
 ```
 process_name contains "schtasks.exe" AND command_line contains "create"
 ```
 
-22. Identify Processes Persisting in Startup
+<ins>22. Identify Processes Persisting in Startup
 ```
 registry_key contains "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" OR file_path contains "Startup"
 ```
 
-23. Detect Lateral Movement Tools
+<ins>23. Detect Lateral Movement Tools
 ```
 process_name in ["wmiexec.exe", "psexec.exe", "mimikatz.exe"]
 ```
 
-24. Search for Ransomware Behavior
+<ins>24. Search for Ransomware Behavior
 ```
 file_extension in [".encrypted", ".locked", ".crypto"] AND event_type contains "file_modification"
 ```
 
-25. Investigate Suspicious DNS Queries
+<ins>25. Investigate Suspicious DNS Queries
 ```
 event_type contains "dns_query" AND query_name contains ".xyz" OR query_name contains ".ru"
 ```
 
-26. Look for Processes Running from Temp Directory
+<ins>26. Look for Processes Running from Temp Directory
 ```
 process_name exists AND file_path contains "C:\\Users\\%USERNAME%\\AppData\\Local\\Temp"
 ```
 
-27. Search for Processes with Unusual Command Line Length
+<ins>27. Search for Processes with Unusual Command Line Length
 ```
 process_name exists AND command_line_length > 500
 ```
 
-28. Monitor for Kernel-Level Threats
+<ins>28. Monitor for Kernel-Level Threats
 ```
 event_type contains "kernel_thread" AND severity in ["high", "critical"]
 ```
 
-29. Investigate Suspicious Service Creations
+<ins>29. Investigate Suspicious Service Creations
 ```
 process_name contains "services.exe" AND command_line contains "create"
 ```
 
-30. Detect Unauthorized USB Device Usage
+<ins>30. Detect Unauthorized USB Device Usage
 ```
 event_type contains "usb_device_connection" AND NOT device_id in ["trusted_device_id1", "trusted_device_id2"]
 ```
