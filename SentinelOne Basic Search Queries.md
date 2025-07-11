@@ -72,7 +72,6 @@ process.name = "cmd.exe" AND process.cmdline contains "net localgroup administra
 process.name = "schtasks.exe" AND process.cmdline contains "/create"
 ```
 
-```
 <ins>Living off the Land Binaries (LOLBins)
 ```
 process.name in ("mshta.exe", "regsvr32.exe", "rundll32.exe") AND process.cmdline contains "http"
@@ -94,23 +93,30 @@ process.name = "powershell.exe" AND process.cmdline contains "IEX"
 process.name = "powershell.exe" AND process.cmdline contains "DownloadString"
 ```
 
-<ins>Search for
+<ins>Encoded or Obfuscated Commands
+```
+process.cmdline contains "FromBase64String"
+```
+```
+process.cmdline contains "JAB"  // Common in obfuscated PowerShell
 ```
 
+<ins>Suspicious File Drops
 ```
-<ins>Search for
-```
-
-```
-
-<ins>Search for
+file.operation = "create" AND file.path contains "\\AppData\\Local\\Temp\\"
 ```
 
+<ins>Suspicious Network Connections
+```
+network.dst_port = 4444 OR network.dst_port = 3389
+```
+```
+network.http.user_agent contains "curl" OR network.http.user_agent contains "python"
 ```
 
-<ins>Search for
+<ins>Suspicious DNS Queries
 ```
-
+dns.query contains ".xyz" OR dns.query contains ".top"
 ```
 
 <ins>Search for
