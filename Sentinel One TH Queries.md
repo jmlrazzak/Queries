@@ -205,7 +205,7 @@ ProcessCmd ContainsCIS "wevtutil cl system" OR ProcessCmd ContainsCIS "Clear-Eve
 
 ```
 
-**==================TO TEST ====================**
+**==================Still Testing (not working correctly yet)====================**
 
 <ins>1. Detect Suspicious Processes
 ```
