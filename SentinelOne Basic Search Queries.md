@@ -45,6 +45,55 @@ process.name = "powershell.exe" AND process.cmdline contains "Invoke-WebRequest"
 ```
 file.operation = "create" AND file.path contains "temp"
 ```
+
+**A bit more Advanced & Thematic Query Examples**
+
+<ins>Persistence Mechanisms
+```
+registry.key_path contains "Run" AND registry.value_data contains "powershell"
+```
+```
+file.path contains "Startup" AND file.name = "malicious.exe"
+```
+
+<ins>Lateral Movement
+```
+process.name = "wmic.exe" AND process.cmdline contains "process call create"
+```
+```
+process.name = "psexec.exe"
+```
+
+<ins>Privilege Escalation
+```
+process.name = "cmd.exe" AND process.cmdline contains "net localgroup administrators"
+```
+```
+process.name = "schtasks.exe" AND process.cmdline contains "/create"
+```
+
+```
+<ins>Living off the Land Binaries (LOLBins)
+```
+process.name in ("mshta.exe", "regsvr32.exe", "rundll32.exe") AND process.cmdline contains "http"
+```
+
+<ins>Defense Evasion
+```
+process.name = "powershell.exe" AND process.cmdline contains "Bypass"
+```
+```
+process.name = "vssadmin.exe" AND process.cmdline contains "delete shadows"
+```
+
+<ins>Suspicious PowerShell Usage
+```
+process.name = "powershell.exe" AND process.cmdline contains "IEX"
+```
+```
+process.name = "powershell.exe" AND process.cmdline contains "DownloadString"
+```
+
 <ins>Search for
 ```
 
@@ -53,26 +102,27 @@ file.operation = "create" AND file.path contains "temp"
 ```
 
 ```
+
 <ins>Search for
 ```
 
 ```
+
 <ins>Search for
 ```
 
 ```
+
 <ins>Search for
 ```
 
 ```
+
 <ins>Search for
 ```
 
 ```
-<ins>Search for
-```
 
-```
 <ins>Search for
 ```
 
