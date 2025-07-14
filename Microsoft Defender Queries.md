@@ -7,6 +7,7 @@ search *
 | project TableName= $table
 ```
 
+**<ins>identify a URL in the environment**
 ```
 // identify a URL in the environment , if you see in DeviceNetworkEvents table and the ActionType is ConnectionSuccess then communication was made. 
 let url = "BAD.COM"; 
@@ -20,6 +21,7 @@ or Url has url
 | take 100 //remove to see everything or edit to see a specific number of events
 ```
 
+**<ins>see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL**
 ```
 //see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL 
 DeviceNetworkEvents 
@@ -27,6 +29,7 @@ DeviceNetworkEvents
 | take 10
 ```
 
+**<ins>Displays events where mail forwarding rules were created or modified, including the user responsible**
 ```
 //This query will show you the details of the events where mail forwarding rules were created or modified, including the user (AccountDisplayName) who performed the action.
 let dest_email = ""; // enter here destination email as seen in the alert or leave blank if not known
@@ -38,6 +41,101 @@ CloudAppEvents
 | extend MailboxInQuestion = tostring(parse_json(RawEventData).["ObjectId"]) // Extracts the Forwarding Address Value
 | project Timestamp, ActionType, UserThatCreatedTheForwardingRule= AccountDisplayName, IPAddress, MailboxInQuestion, ForwardingMailToAddress, RuleConfig = RawEventData.Parameters, RawEventData
 | where RuleConfig has dest_email
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
 ```
 
 
