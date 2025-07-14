@@ -1,6 +1,5 @@
 
 <ins>SHOW ALL TABLES IN SENTINEL
-
 ```
 //SHOW ALL TABLES IN SENTINEL 
 search * 
