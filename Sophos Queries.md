@@ -1,5 +1,5 @@
 **Sophos queries (in progress)**
-**Make sure to launch a managed customer and then go to "Threat Analysys Center " and then Search under investigate**
+**Make sure to launch a MANAGED customer and then go to "Threat Analysys Center " and then Search under investigate**
 
 <ins> IP address
 ```
