@@ -32,6 +32,7 @@ registry.key_path = "HKCU\\Software\\MaliciousKey"
 ```
 process.name = "malicious.exe"
 process.cmdline contains "suspicious_argument"
+tgt.process.cmdline contains:matchcase "\"C:\\Program Files (x86)\\Microsoft Intune Management Extension\\Microsoft.Management.Services.IntuneWindowsAgent.exe\""
 ```
 <ins>Parent-Child Process Relationships
 ```
