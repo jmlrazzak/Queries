@@ -230,6 +230,26 @@ ProcessCmd ContainsCIS "qwinsta"
 ```
 ProcessCmd RegExp "ipconfig" OR ProcessCmd RegExp "net\s+view" OR ProcessCmd RegExp "arp -a" OR ProcessCmd RegExp "netstat"
 ```
+<ins>High‑Confidence C2: Suspicious Outbound IP Connections|Look for outbound connections to rare/external IPs|Filters internal traffic|Good baseline for beacon discovery
+```
+agent.uuid = "ENTER UUID" AND event.type = "IP Connect"event.network.direction = "OUTGOING"event.network.connectionStatus = "SUCCESS"not (  dst.ip.address startswith "10."  or dst.ip.address startswith "172.16."  or dst.ip.address startswith "172.17."  or dst.ip.address startswith "172.18."  or dst.ip.address startswith "172.19."  or dst.ip.address startswith "172.20."  or dst.ip.address startswith "172.21."  or dst.ip.address startswith "172.22."  or dst.ip.address startswith "172.23."  or dst.ip.address startswith "172.24."  or dst.ip.address startswith "172.25."  or dst.ip.address startswith "172.26."  or dst.ip.address startswith "172.27."  or dst.ip.address startswith "172.28."  or dst.ip.address startswith "172.29."  or dst.ip.address startswith "172.30."  or dst.ip.address startswith "172.31."  or dst.ip.address startswith "192.168.")
+```
+<ins>C2 via DNS: Suspicious or Algorithmic Domains | Detect DGA‑like or suspicious DNS activity|Catches DGA domains,Randomized subdomains,Malware DNS beacons
+```
+event.type = "DNS Resolved"and (length(event.dns.queryName) > 35  or event.dns.queryName matches "^[a-z0-9]{15,}\\.")
+```
+<ins>DNS queries from unusual processes|Malware often does DNS from non‑browser processes|Great signal for LOLBins and loaders
+```
+P
+```
+<ins>
+```
+P
+```
+<ins>
+```
+P
+```
 
 **System & Task Management**
 
