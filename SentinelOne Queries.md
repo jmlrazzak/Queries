@@ -240,15 +240,15 @@ event.type = "DNS Resolved"and (length(event.dns.queryName) > 35  or event.dns.q
 ```
 <ins>DNS queries from unusual processes|Malware often does DNS from non‑browser processes|Great signal for LOLBins and loaders
 ```
-P
+
 ```
-<ins>
+<ins>search for
 ```
-P
+
 ```
-<ins>
+<ins>search for
 ```
-P
+
 ```
 
 **System & Task Management**
