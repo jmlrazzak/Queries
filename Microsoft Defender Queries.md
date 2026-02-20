@@ -43,34 +43,32 @@ CloudAppEvents
 | where RuleConfig has dest_email
 ```
 
-**<ins>TEXT**
+**<ins>See all Browser extensions in your environment**
+```
+DeviceTvmBrowserExtensions
+| summarize by ExtensionId
 ```
 
+**<ins>List Devices where Browser extensions are installed | will need to run the above Query first to get all the extensions in the environment then paste**
 ```
-
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
+//list devices where any of extensions are installed
+let ExtensionIds = dynamic([
+  "gaaceiggkkiffbfdpmfapegoiohkiipl", "fihnjjcciajhdojfnbdddfaoknhalnja", "pocpnlppkickgojjlmhdmidojbmbodfm", "ddkjiahejlhfcafbddmgiahcphecmpfh", "nngceckbapebfimnlniiiahkandclblb", "fdpohaocaechififmbbbbbknoalclacl"
+]);
+let ExtHits =
+DeviceTvmBrowserExtensions
+| where ExtensionId in (ExtensionIds)
+| project DeviceId, BrowserName, ExtensionId, ExtensionName, ExtensionVersion, ExtensionRisk;
+ExtHits
+| join kind=leftouter (
+    DeviceInfo
+    | project DeviceId, DeviceName, OSPlatform, LoggedOnUsers
+) on DeviceId
+| summarize
+    Devices = make_set(DeviceName),
+    DeviceCount = dcount(DeviceId)
+  by BrowserName, ExtensionId, ExtensionName, ExtensionVersion, ExtensionRisk
+| order by DeviceCount desc
 ```
 
 **<ins>TEXT**
@@ -137,6 +135,57 @@ CloudAppEvents
 ```
 
 ```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
 
 
 
