@@ -270,14 +270,31 @@ DeviceProcessEvents
 | order by Timestamp desc
 ```
 
-**<ins>TEXT**
+**<ins>SMB PIPES and SMB TRAFFIC**
+```
+//Hunt for SMB to the internet
+let range = 100d;
+union DeviceNetworkEvents, DeviceProcessEvents
+| where Timestamp >= ago(range)
+//Connections have RemotePort set to 445
+//NetworkSignatureInspected have LocalPort set to 445
+| where LocalPort == 445 and Protocol has "Tcp" and isnotempty(RemoteIP) //we exclude RemotePort == 445 because we want to block all local 445 traffic 
+| where not(ipv4_is_private(RemoteIP)) or 
+not(ipv4_is_private(LocalIP))
+| where RemoteIPType != "Private"
 ```
 
+**<ins>export the list of PuTTY sessions**
 ```
-
-**<ins>TEXT**
-```
-
+//The command was used to export the list of PuTTY sessions | the command itself is where Putty stores its data | https://documentation.help/PuTTY/faq.settings.html
+DeviceProcessEvents
+| where ProcessCommandLine in~ 
+("powershell.exe", "powershell_ise.exe") or FileName in~ ("powershell.exe", "powershell_ise.exe") 
+| where InitiatingProcessCommandLine has "HKCU\\Software\\SimonTatham\\Putty\\Sessions"
+ | join ( 
+DeviceRegistryEvents
+| where RegistryKey has "HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY" or PreviousRegistryKey has "HKEY_CURRENT_USER\\Software\\SimonTatham\\PuTTY"
+) on DeviceName
 ```
 
 **<ins>TEXT**
