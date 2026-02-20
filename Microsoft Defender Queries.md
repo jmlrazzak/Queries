@@ -21,6 +21,18 @@ or Url has url
 | take 100 //remove to see everything or edit to see a specific number of events
 ```
 
+**<ins>Network connections to (DOMAIN/URL or IP) (last 100 days)**
+```
+//network connections to (DOMAIN/URL) (last 100 days)
+let C2Domains = dynamic(["google.com", "edge.com"]);
+DeviceNetworkEvents
+| where Timestamp >= ago(100d)
+| where RemoteUrl has_any (C2Domains) or RemoteIP has_any (C2Domains)
+| project Timestamp, DeviceName, DeviceId, InitiatingProcessAccountName, InitiatingProcessFileName,
+          RemoteUrl, RemotePort, RemoteIP, ReportId
+| order by Timestamp desc
+```
+
 **<ins>see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL**
 ```
 //see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL 
