@@ -225,6 +225,19 @@ EmailUrlInfo
 | order by Timestamp desc
 ```
 
+**<ins>Phishing & Email‑borne Threats | Search for malicious links where user was allowed to proceed through VIA SafeClicks**
+```
+// Search for malicious links where user was allowed to proceed through VIA SafeClicks
+UrlClickEvents
+| where Timestamp >= ago(200d)
+| where ActionType == "ClickAllowed" or IsClickedThrough =="0" or IsClickedThrough =="1" //for IsClickedThrough 1=True 0=False
+//IsClickedThrough = True (or 1): The user was presented with a warning page (e.g., that the link was suspicious, blocked, or a threat was detected), but they chose to click through the warning and visit the original dangerous destination.
+//IsClickedThrough = False (or 0):The user was not presented with a warning page (the click was allowed without intervention).The user was presented with a warning but did not proceed to the original URL.
+//| where ThreatTypes has "Phish"
+//| where AccountUpn has "mbratton" //enter users name
+| summarize by Timestamp, IsClickedThrough, AccountUpn, Url
+```
+
 **<ins>Phishing & Email‑borne Threats | Messages delivering potentially dangerous archives/scripts**
 ```
 let lookback = 100d;
