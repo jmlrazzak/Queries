@@ -1,5 +1,5 @@
 
-**<ins>SHOW ALL TABLES IN SENTINEL**
+**<ins>SHOW all TABLES in Defender**
 ```
 //SHOW ALL TABLES IN SENTINEL 
 search * 
