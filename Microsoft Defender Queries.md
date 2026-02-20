@@ -83,6 +83,221 @@ ExtHits
 | order by DeviceCount desc
 ```
 
+**<ins>LOLBins & Scripted Execution
+Suspicious PowerShell (EncodedCommand / IEX / DownloadString)**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName =~ "powershell.exe" or FileName =~ "pwsh.exe"
+| where ProcessCommandLine has_any ("-enc","-EncodedCommand","IEX","Invoke-Expression","DownloadString","-nop","-w hidden")
+| project Timestamp, DeviceName, InitiatingProcessParentFileName, FileName, ProcessCommandLine, AccountName
+| order by Timestamp desc
+```
+
+**<ins>mshta.exe executing remote content**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName =~ "mshta.exe"
+| where ProcessCommandLine matches regex @"https?://"
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| order by Timestamp desc
+```
+
+**<ins>rundll32.exe suspicious script or URL invocation**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName =~ "rundll32.exe"
+| where ProcessCommandLine has_any ("javascript:", "vbscript:", "url.dll,FileProtocolHandler", "shell32.dll,ShellExec_RunDLL", "http://", "https://")
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp desc
+```
+
+**<ins>regsvr32.exe living-off-the-land (scrobj.dll / remote scriptlet)**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName =~ "regsvr32.exe"
+| where ProcessCommandLine has_any ("scrobj.dll","http://","https://") or ProcessCommandLine has "/u"
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp desc
+```
+
+**<ins>certutil.exe abused for download/decoding**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName =~ "certutil.exe"
+| where ProcessCommandLine has_any ("-urlcache","-split","-f","-decode","-decodehex","http://","https://")
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp desc
+```
+
+**<ins>bitsadmin file download usage**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName in~ ("bitsadmin.exe","bitsadmin")
+| where ProcessCommandLine has_any ("transfer","addfile","/download","http://","https://")
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| order by Timestamp desc
+```
+
+**<ins>Run keys modified to launch from user-writable paths**
+```
+let lookback = 100d;
+let RunKeys = dynamic([
+  @"HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+  @"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+  @"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+  @"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+]);
+DeviceRegistryEvents
+| where Timestamp >= ago(lookback)
+| where RegistryKey has_any (RunKeys)
+| where RegistryValueData has_any ("\\AppData\\","\\Temp\\","%APPDATA%","%TEMP%",".js",".vbs",".ps1")
+| project Timestamp, DeviceName, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by Timestamp desc
+```
+
+**<ins>Office apps spawning scripts/LOLBins**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where InitiatingProcessFileName in~ ("WINWORD.EXE","EXCEL.EXE","POWERPNT.EXE","OUTLOOK.EXE")
+| where FileName in~ ("wscript.exe","cscript.exe","powershell.exe","pwsh.exe","mshta.exe","rundll32.exe","cmd.exe")
+| project Timestamp, DeviceName, InitiatingProcessFileName, FileName, ProcessCommandLine, AccountName
+| order by Timestamp desc
+```
+
+**<ins>New local admin accounts created**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName in~ ("net.exe","net1.exe","cmd.exe","powershell.exe","pwsh.exe")
+| where ProcessCommandLine has_any ("localgroup administrators","/add","New-LocalUser","Add-LocalGroupMember")
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| order by Timestamp desc
+```
+
+**<ins>Credential Access & Discovery| procdump / comsvcs.dll targeting LSASS**
+```
+let lookback = 100d;
+// procdump against lsass or comsvcs.dll abuse (MiniDump)
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName in~ ("procdump.exe","procdump64.exe","rundll32.exe")
+| where ProcessCommandLine has_any ("-ma lsass","-ma lsass.exe","comsvcs.dll","MiniDump")
+| project Timestamp, DeviceName, FileName, ProcessCommandLine, InitiatingProcessFileName, AccountName
+| order by Timestamp desc
+```
+
+**<ins>Credential Access & Discovery| Unusual enumeration commands (net, whoami, dsquery, nltest)**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FileName in~ ("net.exe","net1.exe","whoami.exe","nltest.exe","dsquery.exe","dsget.exe","adfind.exe")
+| project Timestamp, DeviceName, FileName, ProcessCommandLine, AccountName
+| order by Timestamp desc
+```
+
+**<ins>Phishing & Email‑borne Threats | Emails with Chrome Web Store links containing extension IDs**
+```
+let lookback = 100d;
+let ExtIdRegex = @"/([a-p]{32})(?:\\?|/|$)";
+EmailUrlInfo
+| where Timestamp >= ago(lookback)
+| where UrlDomain == "chrome.google.com" and Url has "/webstore/detail/"
+| extend ExtensionId = tostring(extract(ExtIdRegex, 1, Url))
+| where isnotempty(ExtensionId)
+| join kind=inner (EmailEvents | where Timestamp >= ago(lookback) | project NetworkMessageId, Subject, SenderFromAddress, RecipientEmailAddress) on NetworkMessageId
+| project Timestamp, RecipientEmailAddress, SenderFromAddress, Subject, Url, ExtensionId
+| order by Timestamp desc
+```
+
+**<ins>Phishing & Email‑borne Threats | Messages delivering potentially dangerous archives/scripts**
+```
+let lookback = 100d;
+EmailAttachmentInfo
+| where Timestamp >= ago(lookback)
+| where FileType in~ ("zip","7z","rar","iso") or FileName endswith ".js" or FileName endswith ".vbs" or FileName endswith ".lnk"
+| join kind=inner (EmailEvents | where Timestamp >= ago(lookback) | project NetworkMessageId, Subject, SenderFromAddress, RecipientEmailAddress) on NetworkMessageId
+| project Timestamp, RecipientEmailAddress, SenderFromAddress, Subject, FileName, FileType, SHA256
+| order by Timestamp desc
+```
+
+**<ins>dentity & Cloud Abuse | OAuth consent spikes / risky app grants**
+```
+let lookback = 100d;
+// Look for app consents/service principal creations (tune ActionType values per tenant)
+IdentityDirectoryEvents
+| where Timestamp >= ago(lookback)
+| where ActionType has_any ("Consent to application","Add service principal","Add OAuth2PermissionGrant")
+| summarize Count=count(), Examples=make_set(AdditionalFields, 5) by ActionType, bin(Timestamp, 1d)
+| order by Timestamp desc
+```
+
+**<ins>Network/DNS Heuristics | Execution from user‑writable paths**
+```
+let lookback = 100d;
+DeviceProcessEvents
+| where Timestamp >= ago(lookback)
+| where FolderPath has_any ("\\AppData\\Local\\","\\AppData\\Roaming\\","\\Temp\\","\\Public\\")
+| project Timestamp, DeviceName, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName
+| order by Timestamp desc
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+**<ins>TEXT**
+```
+
+```
+
+
 **<ins>TEXT**
 ```
 
@@ -133,20 +348,6 @@ ExtHits
 
 ```
 
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
-```
-
-**<ins>TEXT**
-```
-
-```
 
 **<ins>TEXT**
 ```
