@@ -297,9 +297,41 @@ DeviceRegistryEvents
 ) on DeviceName
 ```
 
-**<ins>TEXT**
+**<ins>Teams PSTN call audit record**
 ```
-
+//Teams PSTN call audit record (all information you will need for an investigation for the external number)
+CloudAppEvents
+| where Application == "Microsoft Teams"
+| where RawEventData has_any ("15044000163") //external caller number you want to get info on
+| extend Data = parse_json(RawEventData)
+| mv-expand Attendee = Data.Attendees
+| extend
+    ExternalCallerNumber = tostring(Data.UserId), 
+    InternalUserDisplayName = tostring(Attendee.DisplayName), 
+    InternalUserUPN = tostring(Attendee.UPN), 
+    InternalUserObjectId = tostring(Attendee.UserObjectId), 
+    RecipientType = tostring(Attendee.RecipientType), 
+    ProviderType = tostring(Attendee.ProviderType), 
+    CallOutcome = tostring(Data.ItemName), 
+    CallId = tostring(Data.CallId), CallJoinTime = todatetime(Data.JoinTime), 
+    CallLeaveTime = todatetime(Data.LeaveTime), 
+    DeviceUsed = tostring(Data.DeviceInformation), 
+    UserAgent = tostring(Data.ExtraProperties[0].Value)
+| project
+    Timestamp,
+    ExternalCallerNumber,
+    InternalUserDisplayName,
+    InternalUserUPN,
+    InternalUserObjectId,
+    RecipientType,
+    ProviderType,
+    CallOutcome,
+    CallJoinTime,
+    CallLeaveTime,
+    CallId,
+    DeviceUsed,
+    UserAgent
+| order by Timestamp desc
 ```
 
 **<ins>TEXT**
