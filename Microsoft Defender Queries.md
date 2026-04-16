@@ -332,6 +332,10 @@ CloudAppEvents
     DeviceUsed,
     UserAgent
 | order by Timestamp desc
+
+//add this to then Correlate all calls from this number
+| summarize CallAttempts = count(), FirstSeen = min(Timestamp), LastSeen = max(Timestamp)
+  by ExternalCallerNumber, InternalUserUPN
 ```
 
 **<ins>TEXT**
