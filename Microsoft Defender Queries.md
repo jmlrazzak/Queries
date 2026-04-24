@@ -33,6 +33,19 @@ DeviceNetworkEvents
 | order by Timestamp desc
 ```
 
+**<ins>Network connections grouped by user and site with visit counts and last seen**
+```
+let C2Domains = dynamic(["google.com", "edge.com"]);
+DeviceNetworkEvents
+| where Timestamp >= ago(100d)
+| where RemoteUrl has_any (C2Domains) or RemoteIP has_any (C2Domains)
+| summarize 
+    VisitCount = count(), 
+    LastVisited = max(Timestamp) 
+    by InitiatingProcessAccountName, RemoteUrl
+| sort by VisitCount desc
+```
+
 **<ins>see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL**
 ```
 //see URL hits, Logs network connections initiated by processes, such as a browser clicking and connecting to a URL 
