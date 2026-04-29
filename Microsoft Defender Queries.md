@@ -462,13 +462,13 @@ DeviceNetworkEvents
 Step 2 — Correlate to the process event (confirm what actually ran)
 This joins the network event to the corresponding process creation details (hashes, signer, parent cmdline, etc.). This is how you distinguish “browser running normally” vs “browser spawned by something weird.”
 
-let Domain = "pornotreno.com";
+let Domain = dynamic(["pornotreno.com", "classicpornvids.com", "eporncam.com", "eporncam.com", "xml.clixvista.com", "xml.clickmi.net", "creative.bestjavporn.live", "angelporno.com", "kalyteroporno.com", "pornhub.com"]);
 let Lookback = 30d;
 let Net =
 DeviceNetworkEvents
 | where Timestamp >= ago(Lookback)
 | where isnotempty(RemoteUrl)
-| where tolower(RemoteUrl) has Domain
+| where tolower(RemoteUrl) has_any (Domain)
 | project NetTime=Timestamp, DeviceId, DeviceName, InitiatingProcessId, InitiatingProcessAccountName,
          InitiatingProcessFileName, RemoteUrl, RemoteIP, RemotePort, Protocol, ActionType, ReportId;
 let Proc =
