@@ -68,6 +68,73 @@ CloudAppEvents
 | where RuleConfig has dest_email
 ```
 
+**<ins>URL Clicks | make sure if the user actually clicked creating a Click event + endpoint browser network activity**
+```
+//to make sure if the user actually clicked creating a Click event + endpoint browser network activity (maps to device/browser)
+//this is a certain and easy way to show the user 100% clicked and there was 100% network activity due to the click
+let TimeRange = 100d;
+let SearchWord = "google";
+let JoinWindow = 5m;
+let Browsers = dynamic(["msedge.exe","chrome.exe","firefox.exe","brave.exe","opera.exe"]);
+let Clicks =
+UrlClickEvents
+| where Timestamp >= ago(TimeRange)
+| where tolower(Url) has SearchWord
+| where ActionType == "ClickAllowed"
+| extend ClickTime = Timestamp
+| extend ClickHost = tostring(parse_url(Url).Host)
+| project
+    ClickTime,
+    AccountUpn,
+    Workload,
+    ActionType,
+    IsClickedThrough,
+    Url,
+    ClickHost,
+    UrlChain,
+    IPAddress,
+    ThreatTypes,
+    DetectionMethods,
+    ReportId,
+    NetworkMessageId;
+let BrowserNet =
+DeviceNetworkEvents
+| where Timestamp >= ago(TimeRange)
+| where InitiatingProcessFileName in~ (Browsers)
+| where isnotempty(RemoteUrl)
+| extend NetTime = Timestamp
+| extend NetHost = tostring(parse_url(RemoteUrl).Host)
+| project
+    NetTime,
+    DeviceName,
+    DeviceId,
+    InitiatingProcessAccountUpn,
+    InitiatingProcessAccountName,
+    InitiatingProcessFileName,
+    RemoteUrl,
+    NetHost,
+    RemoteIP,
+    RemotePort,
+    Protocol,
+    ActionType;
+Clicks
+| join kind=leftouter BrowserNet on $left.ClickHost == $right.NetHost
+//| where NetTime between (ClickTime - JoinWindow .. ClickTime + JoinWindow)
+// Prefer UPN match when available
+| where isempty(InitiatingProcessAccountUpn) or tolower(InitiatingProcessAccountUpn) == tolower(AccountUpn)
+| summarize
+    ClickEvents = count(),
+    FirstClick = min(ClickTime),
+    LastClick  = max(ClickTime),
+    MatchedEndpointEvents = countif(isnotempty(DeviceName)),
+    Devices = make_set(DeviceName, 10),
+    BrowsersUsed = make_set(InitiatingProcessFileName, 10),
+    SampleClickedUrls = make_set(Url, 10),
+    SampleRemoteUrls  = make_set(RemoteUrl, 10)
+  by AccountUpn, ClickHost
+| order by ClickEvents desc
+```
+
 **<ins>See all Browser extensions in your environment**
 ```
 DeviceTvmBrowserExtensions
