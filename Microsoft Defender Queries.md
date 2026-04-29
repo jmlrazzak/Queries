@@ -72,8 +72,9 @@ CloudAppEvents
 ```
 //to make sure if the user actually clicked creating a Click event + endpoint browser network activity (maps to device/browser)
 //this is a certain and easy way to show the user 100% clicked and there was 100% network activity due to the click
+//remove or change the user to look into below
 let TimeRange = 100d;
-let SearchWord = "google";
+let SearchWord = "github";
 let JoinWindow = 5m;
 let Browsers = dynamic(["msedge.exe","chrome.exe","firefox.exe","brave.exe","opera.exe"]);
 let Clicks =
@@ -102,6 +103,7 @@ DeviceNetworkEvents
 | where Timestamp >= ago(TimeRange)
 | where InitiatingProcessFileName in~ (Browsers)
 | where isnotempty(RemoteUrl)
+| where InitiatingProcessAccountUpn has "jrazzak@blueally.com" // specify the user you want to dive into
 | extend NetTime = Timestamp
 | extend NetHost = tostring(parse_url(RemoteUrl).Host)
 | project
