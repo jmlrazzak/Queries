@@ -422,19 +422,104 @@ CloudAppEvents
 
 **<ins>CLICK INVESTIGATION FULL**
 ```
-======================= Investigation to see if a user actually clicked or if the malicious traffic is stemming form something else =================
+======= Begin your investigation ================
+
+// Search for any site containing a specific keyword only 1 word at a time
+let SearchWord = "porn";
+let DontWantToSee = dynamic(["system", "local service", "network service", "root"]);
+DeviceNetworkEvents
+| where Timestamp >= ago(100d)
+| where InitiatingProcessAccountName contains "carlosgarciaseverich" //edit the user to hone in on a user
+| where isnotempty(RemoteUrl)
+| where tolower(InitiatingProcessAccountName) !in (DontWantToSee)
+| where tolower(RemoteUrl) contains SearchWord
+    or tolower(RemoteIP) contains SearchWord
+| summarize
+    VisitCount = count(),
+    LastVisited = max(Timestamp)
+    by DeviceName, InitiatingProcessAccountName, RemoteUrl
+| sort by VisitCount desc
+
+======= See if user 100% clicked and went to site =============
+
+//to make sure if the user actually clicked creating a Click event + endpoint browser network activity (maps to device/browser)
+//this is a certain and easy way to show the user 100% clicked and there was 100% network activity due to the click
+let TimeRange = 100d;
+let SearchWord = "github";
+let JoinWindow = 5m;
+let Browsers = dynamic(["msedge.exe","chrome.exe","firefox.exe","brave.exe","opera.exe"]);
+let Clicks =
+UrlClickEvents
+| where Timestamp >= ago(TimeRange)
+| where tolower(Url) has SearchWord
+| where ActionType == "ClickAllowed"
+| extend ClickTime = Timestamp
+| extend ClickHost = tostring(parse_url(Url).Host)
+| project
+    ClickTime,
+    AccountUpn,
+    Workload,
+    ActionType,
+    IsClickedThrough,
+    Url,
+    ClickHost,
+    UrlChain,
+    IPAddress,
+    ThreatTypes,
+    DetectionMethods,
+    ReportId,
+    NetworkMessageId;
+let BrowserNet =
+DeviceNetworkEvents
+| where Timestamp >= ago(TimeRange)
+| where InitiatingProcessFileName in~ (Browsers)
+| where isnotempty(RemoteUrl)
+| where InitiatingProcessAccountUpn has "jrazzak@blueally.com" // specify the user you want to dive into
+| extend NetTime = Timestamp
+| extend NetHost = tostring(parse_url(RemoteUrl).Host)
+| project
+    NetTime,
+    DeviceName,
+    DeviceId,
+    InitiatingProcessAccountUpn,
+    InitiatingProcessAccountName,
+    InitiatingProcessFileName,
+    RemoteUrl,
+    NetHost,
+    RemoteIP,
+    RemotePort,
+    Protocol,
+    ActionType;
+Clicks
+| join kind=leftouter BrowserNet on $left.ClickHost == $right.NetHost
+//| where NetTime between (ClickTime - JoinWindow .. ClickTime + JoinWindow)
+// Prefer UPN match when available
+| where isempty(InitiatingProcessAccountUpn) or tolower(InitiatingProcessAccountUpn) == tolower(AccountUpn)
+| summarize
+    ClickEvents = count(),
+    FirstClick = min(ClickTime),
+    LastClick  = max(ClickTime),
+    MatchedEndpointEvents = countif(isnotempty(DeviceName)),
+    Devices = make_set(DeviceName, 10),
+    BrowsersUsed = make_set(InitiatingProcessFileName, 10),
+    SampleClickedUrls = make_set(Url, 10),
+    SampleRemoteUrls  = make_set(RemoteUrl, 10)
+  by AccountUpn, ClickHost
+| order by ClickEvents desc
+
+======================= Investigation if user says they did not do this_ to see if a user actually clicked or if the malicious traffic is stemming form something else =================
 
 Step 1 — Pull the raw event details (this is the fastest truth)
 Reminder: This table is fundamentally “network connections initiated by processes running on the endpoint.”
 
 //Run this for the exact domain and time window. This will show InitiatingProcessFileName, CommandLine, Parent, ActionType, ports, etc.
-let Domain = "pornotreno.com";
+let Domain = dynamic(["pornotreno.com", "classicpornvids.com", "eporncam.com", "eporncam.com", "xml.clixvista.com", "xml.clickmi.net", "creative.bestjavporn.live", "angelporno.com", "kalyteroporno.com", "pornhub.com"]);
 let StartTime = datetime(2026-04-01 00:00:01); // adjust (UTC vs local)
 let EndTime   = datetime(2026-04-28 23:59:59); // adjust
 DeviceNetworkEvents
 | where Timestamp between (StartTime .. EndTime)
 | where isnotempty(RemoteUrl)
-| where tolower(RemoteUrl) has Domain
+| where tolower(RemoteUrl) has_any (Domain)
 | project
     Timestamp,
     DeviceName,
@@ -493,14 +578,14 @@ Net
 Step 3 — Confirm user session context (was the user actively logged on?)
 If the user wasn’t interactively logged in, that strongly supports “background / automated” causes.
 
-let Domain = "pornotreno.com";
+let Domain = dynamic(["pornotreno.com", "classicpornvids.com", "eporncam.com", "eporncam.com", "xml.clixvista.com", "xml.clickmi.net", "creative.bestjavporn.live", "angelporno.com", "kalyteroporno.com", "pornhub.com"]);
 let Lookback = 30d;
 let Window = 30m;
 let Net =
 DeviceNetworkEvents
 | where Timestamp >= ago(Lookback)
 | where isnotempty(RemoteUrl)
-| where tolower(RemoteUrl) has Domain
+| where tolower(RemoteUrl) has_any (Domain)
 | project NetTime=Timestamp, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessAccountUpn,
          InitiatingProcessFileName, InitiatingProcessId, RemoteUrl;
 DeviceLogonEvents
@@ -518,13 +603,13 @@ DeviceLogonEvents
 Step 4 — Check if this is one-off noise or a pattern (and what process drives it)
 Instead of summarizing by URL only, summarize by process and parent process.
 
-let SearchWord = "porn";
+let SearchWord = dynamic(["pornotreno.com", "classicpornvids.com", "eporncam.com", "eporncam.com", "xml.clixvista.com", "xml.clickmi.net", "creative.bestjavporn.live", "angelporno.com", "kalyteroporno.com", "pornhub.com"]);
 let Lookback = 30d;
 let DontWantToSee = dynamic(["system", "local service", "network service", "root"]);
 DeviceNetworkEvents
 | where Timestamp >= ago(Lookback)
 | where isnotempty(RemoteUrl)
-| where tolower(RemoteUrl) contains SearchWord
+| where tolower(RemoteUrl) has_any (SearchWord)
    // or tolower(RemoteIP) contains SearchWord
 | where tolower(InitiatingProcessAccountName) !in (DontWantToSee)
 | where InitiatingProcessAccountName contains "carlosgarciaseverich"
