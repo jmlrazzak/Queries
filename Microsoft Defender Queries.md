@@ -420,9 +420,124 @@ CloudAppEvents
   by ExternalCallerNumber, InternalUserUPN
 ```
 
-**<ins>TEXT**
+**<ins>CLICK INVESTIGATION FULL**
 ```
+======================= Investigation to see if a user actually clicked or if the malicious traffic is stemming form something else =================
 
+Step 1 — Pull the raw event details (this is the fastest truth)
+Reminder: This table is fundamentally “network connections initiated by processes running on the endpoint.”
+
+//Run this for the exact domain and time window. This will show InitiatingProcessFileName, CommandLine, Parent, ActionType, ports, etc.
+let Domain = "pornotreno.com";
+let StartTime = datetime(2026-04-01 00:00:01); // adjust (UTC vs local)
+let EndTime   = datetime(2026-04-28 23:59:59); // adjust
+DeviceNetworkEvents
+| where Timestamp between (StartTime .. EndTime)
+| where isnotempty(RemoteUrl)
+| where tolower(RemoteUrl) has Domain
+| project
+    Timestamp,
+    DeviceName,
+    InitiatingProcessAccountName,
+    InitiatingProcessAccountUpn,
+    InitiatingProcessFileName,
+    InitiatingProcessCommandLine,
+    InitiatingProcessId,
+    InitiatingProcessCreationTime,
+    InitiatingProcessParentFileName,
+    InitiatingProcessParentId,
+    InitiatingProcessParentCreationTime,
+    ActionType,
+    RemoteUrl,
+    RemoteIP,
+    RemotePort,
+    Protocol,
+    LocalIP,
+    LocalPort,
+    ReportId,
+    AdditionalFields
+| order by Timestamp desc
+
+
+Step 2 — Correlate to the process event (confirm what actually ran)
+This joins the network event to the corresponding process creation details (hashes, signer, parent cmdline, etc.). This is how you distinguish “browser running normally” vs “browser spawned by something weird.”
+
+let Domain = "pornotreno.com";
+let Lookback = 30d;
+let Net =
+DeviceNetworkEvents
+| where Timestamp >= ago(Lookback)
+| where isnotempty(RemoteUrl)
+| where tolower(RemoteUrl) has Domain
+| project NetTime=Timestamp, DeviceId, DeviceName, InitiatingProcessId, InitiatingProcessAccountName,
+         InitiatingProcessFileName, RemoteUrl, RemoteIP, RemotePort, Protocol, ActionType, ReportId;
+let Proc =
+DeviceProcessEvents
+| where Timestamp >= ago(Lookback)
+| project ProcTime=Timestamp, DeviceId, ProcessId, FileName, FolderPath, ProcessCommandLine,
+         InitiatingProcessParentFileName, InitiatingProcessCommandLine,
+         SHA1, SHA256, AccountName;
+Net
+| join kind=leftouter Proc on DeviceId
+| where ProcessId == InitiatingProcessId
+| project
+    NetTime, DeviceName, InitiatingProcessAccountName,
+    InitiatingProcessFileName, FileName,
+    ProcessCommandLine,
+    InitiatingProcessParentFileName, InitiatingProcessCommandLine,
+    SHA1, SHA256,
+    RemoteUrl, RemoteIP, RemotePort, Protocol, ActionType, ReportId
+| order by NetTime desc
+
+
+Step 3 — Confirm user session context (was the user actively logged on?)
+If the user wasn’t interactively logged in, that strongly supports “background / automated” causes.
+
+let Domain = "pornotreno.com";
+let Lookback = 30d;
+let Window = 30m;
+let Net =
+DeviceNetworkEvents
+| where Timestamp >= ago(Lookback)
+| where isnotempty(RemoteUrl)
+| where tolower(RemoteUrl) has Domain
+| project NetTime=Timestamp, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessAccountUpn,
+         InitiatingProcessFileName, InitiatingProcessId, RemoteUrl;
+DeviceLogonEvents
+| where Timestamp >= ago(Lookback)
+| where ActionType == "LogonSuccess"
+| where LogonType in~ ("Interactive","RemoteInteractive","Unlock","CachedInteractive")
+| project LogonTime=Timestamp, DeviceId, AccountName, LogonType
+| join kind=rightouter Net on DeviceId
+| where AccountName == InitiatingProcessAccountName
+| where LogonTime between (NetTime - Window .. NetTime + Window)
+| project NetTime, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, RemoteUrl, LogonTime, LogonType
+| order by NetTime desc
+
+
+Step 4 — Check if this is one-off noise or a pattern (and what process drives it)
+Instead of summarizing by URL only, summarize by process and parent process.
+
+let SearchWord = "porn";
+let Lookback = 30d;
+let DontWantToSee = dynamic(["system", "local service", "network service", "root"]);
+DeviceNetworkEvents
+| where Timestamp >= ago(Lookback)
+| where isnotempty(RemoteUrl)
+| where tolower(RemoteUrl) contains SearchWord
+   // or tolower(RemoteIP) contains SearchWord
+| where tolower(InitiatingProcessAccountName) !in (DontWantToSee)
+| where InitiatingProcessAccountName contains "carlosgarciaseverich"
+| summarize
+    Hits=count(),
+    FirstSeen=min(Timestamp),
+    LastSeen=max(Timestamp),
+    SampleUrls=make_set(RemoteUrl, 5)
+  by DeviceName,
+     InitiatingProcessAccountName,
+     InitiatingProcessFileName,
+     InitiatingProcessParentFileName
+| order by LastSeen desc
 ```
 
 **<ins>TEXT**
