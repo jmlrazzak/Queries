@@ -106,11 +106,11 @@ Click Confirm
 
 ✅ The script is now in the Live Response library
 
-3️⃣ You can now run it in Live Response
+3️⃣ **You can now run it in Live Response**
 When connected to a device via Live Response, execute:
-PowerShellrun
+PowerShellrun - just run the entire command below as is;
 
-remove-folder.ps1 -parameters "-Path \"C:\Users\CarlosGarciaSeverich\AppData\Local\Programs\rave-desktop\""
+```run remove-folder.ps1 -parameters "-Path \"C:\Users\CarlosGarciaSeverich\AppData\Local\Programs\rave-desktop""```
 
 This will delete the entire rave-desktop folder and everything inside it.
 ```
