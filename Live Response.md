@@ -1,8 +1,8 @@
 **<ins>HOW TO DO THINGS**
 
 PowerShell alias you may see
-rm
-del
+rm , 
+del , 
 erase
 
 **<ins>list available commands**
