@@ -67,14 +67,14 @@ Create the PowerShell script (on your own machine)
 Open Notepad (or VS Code).
 
 Paste this script:
-````
+===================
 param (
     [Parameter(Mandatory=$true)]
     [string]$Path
 )
 
 Remove-Item -LiteralPath $Path -Recurse -Force
-````
+========================
 
 Save the file as:
 remove-folder.ps1
@@ -130,14 +130,14 @@ powershell script is below to add to Live response Library
 Save the file as:
 delete-multiple.ps1
 
-````
+===================
 param (
     [Parameter(Mandatory=$true)]
     [string]$FolderPath
 )
 
 Get-ChildItem -Path $FolderPath -File | Remove-Item -Force
-````
+=======================
 **You can now run it in Live Response**
 When connected to a device via Live Response, execute:
 PowerShellrun - just run the entire command below as is;
