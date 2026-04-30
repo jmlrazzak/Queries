@@ -1,20 +1,21 @@
 **<ins>HOW TO DO THINGS**
-
+```
 PowerShell alias you may see
 rm , 
 del , 
 erase
 ```
 
-**<ins>list available commands**
+**<ins>List the available commands
 ```
 help
-``
+```
 
 **<ins>go to a directory**
 ```
 cd
 ```
+
 **<ins>go back one directory**
 ```
 cd ..
