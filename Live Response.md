@@ -9,6 +9,10 @@ erase
 ```
 cd
 ```
+**<ins>go back one directory**
+```
+cd ..
+```
 
 **<ins>see all files in directory**
 ```
