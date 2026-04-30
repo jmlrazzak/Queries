@@ -6,7 +6,7 @@ del ,
 erase
 ```
 
-**<ins>List the available commands
+**<ins>List the available commands**
 ```
 help
 ```
