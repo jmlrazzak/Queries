@@ -67,7 +67,14 @@ Create the PowerShell script (on your own machine)
 Open Notepad (or VS Code).
 
 Paste this script:
-PowerShellparam (    [Parameter(Mandatory=$true)]    [string]$Path)Remove-Item -LiteralPath $Path -Recurse -Force``Show more lines
+```
+param (
+    [Parameter(Mandatory=$true)]
+    [string]$Path
+)
+
+Remove-Item -LiteralPath $Path -Recurse -Force
+```
 
 Save the file as:
 remove-folder.ps1
@@ -110,14 +117,34 @@ Click Confirm
 When connected to a device via Live Response, execute:
 PowerShellrun - just run the entire command below as is;
 
-```run remove-folder.ps1 -parameters "-Path \"C:\Users\CarlosGarciaSeverich\AppData\Local\Programs\rave-desktop""```
+run remove-folder.ps1 -parameters "-Path \"C:\Users\CarlosGarciaSeverich\AppData\Local\Programs\rave-desktop""
 
 This will delete the entire rave-desktop folder and everything inside it.
 ```
 
-**<ins>**
+**<ins>Delete multiple files at once using a PowerShell script**
 ```
+do the same steps as "Create the PowerShell script (on your own machine) to delete a folder and all inside" 
 
+powershell script is below to add to Live response Library
+Save the file as:
+delete-multiple.ps1
+
+```
+param (
+    [Parameter(Mandatory=$true)]
+    [string]$FolderPath
+)
+
+Get-ChildItem -Path $FolderPath -File | Remove-Item -Force
+```
+**You can now run it in Live Response**
+When connected to a device via Live Response, execute:
+PowerShellrun - just run the entire command below as is;
+
+run delete-multiple.ps1 -parameters "-FolderPath \"C:\Users\CarlosGarciaSeverich\AppData\Local\Programs\rave-desktop""
+
+This will delete the entire rave-desktop folder and everything inside it.
 ```
 
 **<ins>**
