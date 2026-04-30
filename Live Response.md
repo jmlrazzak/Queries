@@ -4,6 +4,10 @@ PowerShell alias you may see
 rm
 del
 erase
+**<ins>list available commands**
+```
+help
+``
 
 **<ins>go to a directory**
 ```
