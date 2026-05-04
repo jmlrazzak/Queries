@@ -444,14 +444,14 @@ DeviceNetworkEvents
 
 //to make sure if the user actually clicked creating a Click event + endpoint browser network activity (maps to device/browser)
 //this is a certain and easy way to show the user 100% clicked and there was 100% network activity due to the click
-let TimeRange = 100d;
-let SearchWord = "github";
+let TimeRange = 30d;
+let SearchWord = dynamic(["github"]);
 let JoinWindow = 5m;
 let Browsers = dynamic(["msedge.exe","chrome.exe","firefox.exe","brave.exe","opera.exe"]);
 let Clicks =
 UrlClickEvents
 | where Timestamp >= ago(TimeRange)
-| where tolower(Url) has SearchWord
+| where tolower(Url) has_any (SearchWord)
 | where ActionType == "ClickAllowed"
 | extend ClickTime = Timestamp
 | extend ClickHost = tostring(parse_url(Url).Host)
