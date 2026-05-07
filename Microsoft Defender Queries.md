@@ -625,9 +625,138 @@ DeviceNetworkEvents
 | order by LastSeen desc
 ```
 
-**<ins>TEXT**
+**<ins>SQL Export/Dump Tool Detection | Execution + File Evidence + Optional Network Correlation**
 ```
-
+// ===============================
+// SQL Export/Dump Tool Detection
+// Execution + File Evidence + Optional Network Correlation
+// Microsoft Defender for Endpoint Advanced Hunting
+// ===============================
+let Lookback = 30d;
+let FileEvidenceWindow = 20m;     // After tool execution, look for export/dump file creation
+let NetEvidenceWindow  = 30m;     // After tool execution, look for outbound connections
+let MinExportBytes = 50000;       // Tune: minimum file size to consider "real" extraction evidence
+// Tools of interest (Windows + Linux/macOS names)
+let Tools = dynamic([
+  "bcp.exe","bcp",
+  "sqlcmd.exe","sqlcmd",
+  "mysqldump.exe","mysqldump",
+  "pg_dump.exe","pg_dump",
+  "pg_dumpall.exe","pg_dumpall",
+  "expdp.exe","expdp",
+  "sqlite3.exe","sqlite3"
+]);
+// File extensions commonly produced during DB export/dumps or staging
+let ExportExtensions = dynamic([".csv",".tsv",".txt",".dat",".sql",".dump",".dmp",".bak",".gz",".zip",".7z",".tar"]);
+// 1) Tool executions with "export intent" indicators (constant patterns; no datatable regex)
+let ToolExec =
+    DeviceProcessEvents
+    | where Timestamp >= ago(Lookback)
+    | where FileName in~ (Tools)
+    | extend Cmd = tostring(ProcessCommandLine)
+    | extend ToolFamily =
+        case(
+            FileName in~ ("bcp.exe","bcp"), "mssql",
+            FileName in~ ("sqlcmd.exe","sqlcmd"), "mssql",
+            FileName in~ ("mysqldump.exe","mysqldump"), "mysql",
+            FileName in~ ("pg_dump.exe","pg_dump","pg_dumpall.exe","pg_dumpall"), "postgres",
+            FileName in~ ("expdp.exe","expdp"), "oracle",
+            FileName in~ ("sqlite3.exe","sqlite3"), "sqlite",
+            "other"
+        )
+    | extend ExportIntent =
+        case(
+            // bcp: out/queryout are strong signals of export
+            FileName in~ ("bcp.exe","bcp") and Cmd matches regex @"(?i)\b(out|queryout)\b", 1,
+            // sqlcmd: output flags/scripts frequently used for extraction
+            FileName in~ ("sqlcmd.exe","sqlcmd") and Cmd matches regex @"(?i)\s(-Q|-i|-o)\s", 1,
+            // mysqldump: backup/export patterns
+            FileName in~ ("mysqldump.exe","mysqldump") and Cmd matches regex @"(?i)(--result-file|--tab|--databases|--all-databases|\s>\s|\|\s*g?zip\b)", 1,
+            // pg_dump: -f / --file or archive format usage
+            FileName in~ ("pg_dump.exe","pg_dump") and Cmd matches regex @"(?i)(\s(-f|-F)\s|--file\b)", 1,
+            // pg_dumpall: -f / --file is common
+            FileName in~ ("pg_dumpall.exe","pg_dumpall") and Cmd matches regex @"(?i)(\s(-f)\s|--file\b)", 1,
+            // expdp: dumpfile= / full=y / schemas= / tables=
+            FileName in~ ("expdp.exe","expdp") and Cmd matches regex @"(?i)\b(dumpfile|full|schemas|tables)\s*=\s*", 1,
+            // sqlite3: .dump/.output indicates dumping
+            FileName in~ ("sqlite3.exe","sqlite3") and Cmd matches regex @"(?i)\.(dump|output)\b", 1,
+            0
+        )
+    | where ExportIntent == 1
+    | project
+        ExecTime = Timestamp,
+        DeviceId, DeviceName,
+        AccountName,
+        InitiatingProcessAccountName,
+        Tool = FileName,
+        ToolFamily,
+        Cmd,
+        ExecProcessId = ProcessId,
+        ExecFolderPath = FolderPath,
+        SHA1, SHA256,
+        ReportId;
+// 2) Evidence of extraction: export/dump file writes by the SAME process soon after execution
+let ExportFiles =
+    DeviceFileEvents
+    | where Timestamp >= ago(Lookback)
+    | where ActionType in ("FileCreated","FileRenamed","FileModified")
+    | extend FileExt = tolower(strcat(".", extract(@"\.([^.]+)$", 1, FileName)))
+    | where FileExt in (ExportExtensions)
+    | project
+        FileTime = Timestamp,
+        DeviceId, DeviceName,
+        ExportFileName = FileName,
+        ExportPath = FolderPath,
+        FileExt,
+        FileSize,
+        FileProcId = InitiatingProcessId,
+        FileProcName = InitiatingProcessFileName,
+        FileProcCmd  = InitiatingProcessCommandLine,
+        FileProcUser = InitiatingProcessAccountName;
+// 3) Optional: outbound network activity by the SAME process after execution
+let NetEgress =
+    DeviceNetworkEvents
+    | where Timestamp >= ago(Lookback)
+    | where ActionType in ("ConnectionSuccess","ConnectionAttempt")
+    | project
+        NetTime = Timestamp,
+        DeviceId, DeviceName,
+        NetProcId = InitiatingProcessId,
+        NetProcName = InitiatingProcessFileName,
+        RemoteIP, RemotePort, RemoteUrl, Protocol,
+        NetProcUser = InitiatingProcessAccountName;
+// Correlate: tool exec -> file evidence -> net evidence
+ToolExec
+| join kind=leftouter (
+    ExportFiles
+) on DeviceId, $left.ExecProcessId == $right.FileProcId
+// FIX: Use explicit comparisons instead of between(...) with expressions
+| where isnull(FileTime) or (FileTime >= ExecTime and FileTime <= ExecTime + FileEvidenceWindow)
+| join kind=leftouter (
+    NetEgress
+) on DeviceId, $left.ExecProcessId == $right.NetProcId
+| where isnull(NetTime) or (NetTime >= ExecTime and NetTime <= ExecTime + NetEvidenceWindow)
+| extend HasFileEvidence = iff(isnotempty(ExportFileName) and (toint(FileSize) >= MinExportBytes or isempty(tostring(FileSize))), 1, 0)
+| summarize
+    FirstSeen=min(ExecTime),
+    LastSeen=max(ExecTime),
+    ExecCount=count(),
+    ExampleCmdLine=any(Cmd),
+    ExportFileCount=dcountif(strcat(ExportPath, "\\", ExportFileName), HasFileEvidence==1),
+    ExportFiles=make_set_if(strcat(ExportPath, "\\", ExportFileName), HasFileEvidence==1, 25),
+    ExportExts=make_set_if(FileExt, HasFileEvidence==1, 20),
+    MaxExportFileSize=max(FileSize),
+    RemoteIPs=make_set(RemoteIP, 25),
+    RemoteUrls=make_set(RemoteUrl, 25),
+    Users=make_set(AccountName, 25)
+  by DeviceName, DeviceId, Tool, ToolFamily, ExecFolderPath
+| extend Confidence =
+    case(
+      ExportFileCount > 0, "HIGH (tool execution + export file evidence)",
+      ExecCount > 0, "MEDIUM (tool execution with export-intent)",
+      "LOW"
+    )
+| order by Confidence desc, LastSeen desc
 ```
 
 **<ins>TEXT**
