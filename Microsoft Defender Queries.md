@@ -627,6 +627,10 @@ DeviceNetworkEvents
 
 **<ins>SQL Export/Dump Tool Detection | Execution + File Evidence + Optional Network Correlation**
 ```
+//The query is looking for likely SQL data extraction activity by correlating three kinds of evidence on the same device:
+//- Execution of known database export/dump utilities (process telemetry)
+//- Creation/modification of export-style files shortly after (file telemetry)
+//- Outbound network connections shortly after (network telemetry, optional signal)
 // ===============================
 // SQL Export/Dump Tool Detection
 // Execution + File Evidence + Optional Network Correlation
