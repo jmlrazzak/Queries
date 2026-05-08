@@ -842,10 +842,10 @@ SusSuccess
   by DeviceName, RemoteIP, RemoteDeviceName
 | extend ExfilConfidence =
     case(
-      ExportFileCount > 0 and OutboundCount > 0, "HIGH (export artifact + outbound after suspicious logon)",
-      ExportFileCount > 0, "MEDIUM (export artifact after suspicious logon)",
-      SusProcCount > 0, "LOW-MED (suspicious tooling after suspicious logon)",
-      "LOW (logon evidence only)"
+      ExportFileCount > 0 and OutboundCount > 0, "HIGH (suspicious succesful logon + export-like file artifact was created/modified + host made an outbound network connection)",
+      ExportFileCount > 0, "MEDIUM (suspicious succesful logon + export-like file artifact was created/modified)",
+      SusProcCount > 0, "LOW-MED (suspicious tooling after suspicious succesful logon)",
+      "LOW (suspicious succesful logon evidence only)"
     )
 | order by ExfilConfidence desc, SuccessTime desc
 
