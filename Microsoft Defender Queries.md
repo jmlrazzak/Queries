@@ -763,8 +763,91 @@ ToolExec
 | order by Confidence desc, LastSeen desc
 ```
 
-**<ins>TEXT**
+**<ins>“Did exfil happen?” — correlate successful logon to export tools + dump files + outbound connections**
 ```
+“Did exfil happen?” — correlate successful logon to export tools + dump files + outbound connections
+This is your best MDE-only “evidence of exfiltration” correlation.
+
+// ===============================
+// Explicit time range correlation (MDE Advanced Hunting)
+// Correlate malicious logon success -> suspicious processes -> export files -> outbound net
+// ===============================
+// --- Set your explicit UTC time range here ---
+let StartTime = datetime(2026-05-06T00:00:00Z);
+let EndTime   = datetime(2026-05-07T00:00:00Z);
+// --- Pivots ---
+let MaliciousIP = "10.9.10.252";
+let MaliciousRemoteDevice = "copy-of-vm-2022";
+// How long after a successful logon to hunt for exfil indicators
+let AfterWindow = 2h;
+// Add/remove tools based on your environment
+let SuspiciousTools = dynamic([
+  "sqlcmd.exe","bcp.exe",
+  "powershell.exe","pwsh.exe","cmd.exe",
+  "rclone.exe","winscp.exe","pscp.exe","scp.exe",
+  "curl.exe","wget.exe",
+  "7z.exe","rar.exe","winrar.exe","tar.exe","gzip.exe"
+]);
+let ExportExt = dynamic(["csv","tsv","txt","dat","sql","dump","dmp","bak","zip","7z","tar","gz"]);
+// --- 1) Suspicious successful logons (4624-equivalent) from IP or remote device ---
+let SusSuccess =
+DeviceLogonEvents
+| where Timestamp between (StartTime .. EndTime)
+| where (RemoteIP == MaliciousIP or RemoteDeviceName =~ MaliciousRemoteDevice)
+| where ActionType has "Success" or ActionType has "Succeeded" or ActionType == "LogonSuccess"
+| extend User = strcat(AccountDomain, "\\", AccountName)
+| project SuccessTime=Timestamp, DeviceName, User, LogonType, RemoteIP, RemoteDeviceName
+| extend WindowEnd = iif(SuccessTime + AfterWindow < EndTime, SuccessTime + AfterWindow, EndTime);
+// --- 2) Suspicious process executions in the same time range ---
+let PostProc =
+DeviceProcessEvents
+| where Timestamp between (StartTime .. EndTime)
+| where FileName in~ (SuspiciousTools)
+| project ProcTime=Timestamp, DeviceName, Proc=FileName, ProcCmd=ProcessCommandLine, ProcUser=AccountName;
+// --- 3) Export-like file artifacts in the same time range ---
+let PostFiles =
+DeviceFileEvents
+| where Timestamp between (StartTime .. EndTime)
+| where ActionType in ("FileCreated","FileModified","FileRenamed")
+| extend Ext = tolower(tostring(split(FileName, ".")[-1]))
+| where Ext in (ExportExt)
+| project FileTime=Timestamp, DeviceName, FileName, FolderPath, FileSize,
+          FileProc=InitiatingProcessFileName, FileProcCmd=InitiatingProcessCommandLine, FileProcUser=InitiatingProcessAccountName;
+// --- 4) Outbound network in the same time range ---
+let PostNet =
+DeviceNetworkEvents
+| where Timestamp between (StartTime .. EndTime)
+| where ActionType in ("ConnectionSuccess","ConnectionAttempt")
+| project NetTime=Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl, Protocol,
+          NetProc=InitiatingProcessFileName, NetProcCmd=InitiatingProcessCommandLine, NetProcUser=InitiatingProcessAccountName;
+// --- Correlate each successful logon to post events on the same device within the capped window ---
+SusSuccess
+| join kind=leftouter (PostProc) on DeviceName
+| where isnull(ProcTime) or (ProcTime >= SuccessTime and ProcTime <= WindowEnd)
+| join kind=leftouter (PostFiles) on DeviceName
+| where isnull(FileTime) or (FileTime >= SuccessTime and FileTime <= WindowEnd)
+| join kind=leftouter (PostNet) on DeviceName
+| where isnull(NetTime) or (NetTime >= SuccessTime and NetTime <= WindowEnd)
+| summarize
+    SuccessTime=min(SuccessTime),
+    WindowEnd=max(WindowEnd),
+    Users=make_set(User, 10),
+    LogonTypes=make_set(tostring(LogonType), 10),
+    SusProcCount=dcountif(strcat(Proc,"|",ProcCmd), isnotempty(Proc)),
+    SusProcSamples=make_set(strcat(ProcTime," ",Proc," ",ProcCmd), 20),
+    ExportFileCount=dcountif(strcat(FolderPath,"\\",FileName), isnotempty(FileName)),
+    ExportFiles=make_set(strcat(FileTime," ",FolderPath,"\\",FileName," (",FileSize,") via ",FileProc), 20),
+    OutboundCount=dcountif(strcat(RemoteIP,":",RemotePort,"|",NetProc), isnotempty(RemoteIP)),
+    OutboundSamples=make_set(strcat(NetTime," ",RemoteIP,":",RemotePort," ",RemoteUrl," via ",NetProc), 20)
+  by DeviceName, RemoteIP, RemoteDeviceName
+| extend ExfilConfidence =
+    case(
+      ExportFileCount > 0 and OutboundCount > 0, "HIGH (export artifact + outbound after suspicious logon)",
+      ExportFileCount > 0, "MEDIUM (export artifact after suspicious logon)",
+      SusProcCount > 0, "LOW-MED (suspicious tooling after suspicious logon)",
+      "LOW (logon evidence only)"
+    )
+| order by ExfilConfidence desc, SuccessTime desc
 
 ```
 
