@@ -851,8 +851,10 @@ SusSuccess
 
 ```
 
-**<ins>Show the exact outbound destinations and whether they’re public vs private (use for data going out of environment)**
+**<ins>identify Exfil (use for data/files going out of environment)**
 ```
+========Part 1===========
+
 //Show the exact outbound destinations and whether they’re public vs private
 //This will help answer the “outside the network?” question.
 //How to interpret:
@@ -896,6 +898,96 @@ SusSuccess
     Procs=make_set(NetProc, 25)
   by DeviceName, User, IsPrivateIP
 | order by IsPrivateIP asc, LastNet desc
+
+====Part 2========
+
+//Show the “export artifacts” (what file, where, how big, which process created it)
+//This helps validate whether the “export artifact” looks like real data staging.
+//What to look for:
+//- Large FileSize (MB/GB) in suspicious locations like Temp, Downloads, Public, user profiles, unusual shares.
+//- Creating process being a known export tool (bcp, sqlcmd, powershell, 7z, rclone, etc.).
+let StartTime = datetime(2026-05-06T00:00:00Z);
+let EndTime   = datetime(2026-05-07T00:00:00Z);
+let MaliciousIP = "10.9.10.252";
+let MaliciousRemoteDevice = "copy-of-vm-2022";
+let AfterWindow = 2h;
+let ExportExt = dynamic(["csv","tsv","txt","dat","sql","dump","dmp","bak","zip","7z","tar","gz"]);
+let SusSuccess =
+DeviceLogonEvents
+| where Timestamp between (StartTime .. EndTime)
+| where (RemoteIP == MaliciousIP or RemoteDeviceName =~ MaliciousRemoteDevice)
+| where ActionType has "Success" or ActionType == "LogonSuccess"
+| extend User = strcat(AccountDomain, "\\", AccountName)
+| project SuccessTime=Timestamp, DeviceName, User
+| extend WindowEnd = iif(SuccessTime + AfterWindow < EndTime, SuccessTime + AfterWindow, EndTime);
+SusSuccess
+| join kind=inner (
+    DeviceFileEvents
+    | where Timestamp between (StartTime .. EndTime)
+    | where ActionType in ("FileCreated","FileModified","FileRenamed")
+    | extend Ext = tolower(tostring(split(FileName, ".")[-1]))
+    | where Ext in (ExportExt)
+    | project FileTime=Timestamp, DeviceName, FolderPath, FileName, FileSize,
+              Proc=InitiatingProcessFileName, ProcCmd=InitiatingProcessCommandLine, ProcUser=InitiatingProcessAccountName
+) on DeviceName
+| where FileTime between (SuccessTime .. WindowEnd)
+| order by FileTime desc
+
+
+=========Part 3=============
+
+//Connect the dots: same process created the export file and made outbound connections
+//This is the strongest “exfil likely” chain you can build in endpoint telemetry.
+//If you see:
+//- large export file created by a suspicious process and
+//- that same process makes outbound connections to public IPs / suspicious domains,
+//…then you have a very credible “exfil likely” storyline.
+let StartTime = datetime(2026-05-06T00:00:00Z);
+let EndTime   = datetime(2026-05-07T00:00:00Z);
+let MaliciousIP = "10.9.10.252";
+let MaliciousRemoteDevice = "copy-of-vm-2022";
+let AfterWindow = 2h;
+let ExportExt = dynamic(["csv","tsv","txt","dat","sql","dump","dmp","bak","zip","7z","tar","gz"]);
+let SusSuccess =
+DeviceLogonEvents
+| where Timestamp between (StartTime .. EndTime)
+| where (RemoteIP == MaliciousIP or RemoteDeviceName =~ MaliciousRemoteDevice)
+| where ActionType has "Success" or ActionType == "LogonSuccess"
+| extend User = strcat(AccountDomain, "\\", AccountName)
+| project SuccessTime=Timestamp, DeviceName, User
+| extend WindowEnd = iif(SuccessTime + AfterWindow < EndTime, SuccessTime + AfterWindow, EndTime);
+let Files =
+DeviceFileEvents
+| where Timestamp between (StartTime .. EndTime)
+| where ActionType in ("FileCreated","FileModified","FileRenamed")
+| extend Ext = tolower(tostring(split(FileName, ".")[-1]))
+| where Ext in (ExportExt)
+| project FileTime=Timestamp, DeviceName, FolderPath, FileName, FileSize,
+          Proc=InitiatingProcessFileName, ProcCmd=InitiatingProcessCommandLine;
+let Net =
+DeviceNetworkEvents
+| where Timestamp between (StartTime .. EndTime)
+| where ActionType in ("ConnectionSuccess","ConnectionAttempt")
+| project NetTime=Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl, Protocol,
+          Proc=InitiatingProcessFileName, ProcCmd=InitiatingProcessCommandLine;
+SusSuccess
+| join kind=inner Files on DeviceName
+| where FileTime between (SuccessTime .. WindowEnd)
+| join kind=inner Net on DeviceName, Proc, ProcCmd
+| where NetTime between (SuccessTime .. WindowEnd)
+| extend IsPrivateIP = case(
+    RemoteIP startswith "10.", true,
+    RemoteIP startswith "192.168.", true,
+    RemoteIP matches regex @"^172\.(1[6-9]|2[0-9]|3[0-1])\.", true,
+    RemoteIP startswith "127.", true,
+    RemoteIP startswith "169.254.", true,
+    false
+)
+| project SuccessTime, DeviceName, User,
+          FileTime, FolderPath, FileName, FileSize,
+          Proc, ProcCmd,
+          NetTime, RemoteIP, RemotePort, RemoteUrl, Protocol, IsPrivateIP
+| order by NetTime desc
 ```
 
 **<ins>TEXT**
