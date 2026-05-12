@@ -851,9 +851,51 @@ SusSuccess
 
 ```
 
-**<ins>TEXT**
+**<ins>Show the exact outbound destinations and whether they’re public vs private (use for data going out of environment)**
 ```
-
+//Show the exact outbound destinations and whether they’re public vs private
+//This will help answer the “outside the network?” question.
+//How to interpret:
+//- IsPrivateIP = false (0)= likely external/public IP → much more suspicious for exfil.
+//- IsPrivateIP = true (1) = could still be internal traffic → doesn’t prove external exfil.
+let StartTime = datetime(2026-05-06T00:00:00Z);
+let EndTime   = datetime(2026-05-07T00:00:00Z);
+let MaliciousIP = "10.9.10.252";
+let MaliciousRemoteDevice = "copy-of-vm-2022";
+let AfterWindow = 2h;
+let SusSuccess =
+DeviceLogonEvents
+| where Timestamp between (StartTime .. EndTime)
+| where (RemoteIP == MaliciousIP or RemoteDeviceName =~ MaliciousRemoteDevice)
+| where ActionType has "Success" or ActionType == "LogonSuccess"
+| extend User = strcat(AccountDomain, "\\", AccountName)
+| project SuccessTime=Timestamp, DeviceName, User
+| extend WindowEnd = iif(SuccessTime + AfterWindow < EndTime, SuccessTime + AfterWindow, EndTime);
+SusSuccess
+| join kind=inner (
+    DeviceNetworkEvents
+    | where Timestamp between (StartTime .. EndTime)
+    | where ActionType in ("ConnectionSuccess","ConnectionAttempt")
+    | project NetTime=Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl, Protocol,
+              NetProc=InitiatingProcessFileName, NetProcCmd=InitiatingProcessCommandLine
+) on DeviceName
+| where NetTime between (SuccessTime .. WindowEnd)
+| extend IsPrivateIP = case(
+    RemoteIP startswith "10.", true,
+    RemoteIP startswith "192.168.", true,
+    RemoteIP matches regex @"^172\.(1[6-9]|2[0-9]|3[0-1])\.", true,
+    RemoteIP startswith "127.", true,
+    RemoteIP startswith "169.254.", true,
+    false
+)
+| summarize
+    FirstNet=min(NetTime),
+    LastNet=max(NetTime),
+    RemoteIPs=make_set(RemoteIP, 50),
+    RemoteUrls=make_set(RemoteUrl, 50),
+    Procs=make_set(NetProc, 25)
+  by DeviceName, User, IsPrivateIP
+| order by IsPrivateIP asc, LastNet desc
 ```
 
 **<ins>TEXT**
